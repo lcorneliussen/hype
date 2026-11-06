@@ -1539,9 +1539,9 @@ ApplicationWindow {
                     // Keep the fast thumbnail behind the full render. Even if it remains visible
                     // briefly after loading, it cannot cover the sharp image once that is ready.
                     Image {
-                        objectName: "slideQuickPreview"; anchors.fill: parent
+                        id: slideQuickPreview; objectName: "slideQuickPreview"; anchors.fill: parent
                         // Never stand in with the authored poster thumbnail while a live first-frame
-                        // render loads — that stand-in is itself the flash this change removes.
+                        // render loads — that stand-in is itself the flash the first-frame change removes.
                         visible: slidePreview.status === Image.Loading && slidePreview.shownSlide !== deck.selected
                                  && status === Image.Ready && !slidePreview.liveFirstFrame
                         // The same URL and size as the sidebar thumbnail, so it comes from Qt's pixmap cache.
@@ -1557,10 +1557,12 @@ ApplicationWindow {
                             + (animation.active ? "/background" : (liveFirstFrame ? "/firstframe" : ""))
                         asynchronous: true; retainWhileLoading: true; cache: true; sourceSize: Qt.size(1920, 1080)
                         property int shownSlide: -1
-                        // On a new slide, let its thumbnail show while this render loads. Edits to the
-                        // same slide retain the previous sharp frame until the new one is ready — but
-                        // not while switching to the live first frame, so the poster is never held.
-                        visible: status === Image.Ready || (shownSlide === deck.selected && !liveFirstFrame)
+                        // Hold a frame during load: for a normal slide, the previous sharp frame (same
+                        // slide) or, when its thumbnail is not cached, the current frame instead of the
+                        // window background. While switching to the live first frame, never retain the
+                        // poster — show the first frame only once its render is ready.
+                        visible: status === Image.Ready
+                                 || (!liveFirstFrame && (shownSlide === deck.selected || !slideQuickPreview.visible))
                         onStatusChanged: if (status === Image.Ready) shownSlide = deck.selected
                     }
                     Loader {
